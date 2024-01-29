@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="A 2D geometric bin-packing game that runs in the browser. You have to pack all rectangles from the left side into the minimum number of bins on the right side." />
+<title>Packing game</title>
+<link rel="stylesheet" href="style.css" />
+<script defer src="game-logic.js"></script>
+<script defer src="game-io.js"></script>
+<script defer src="algo.js"></script>
+<script defer src="extra-ui.js"></script>
+</head>
+<body class="dark">
+<canvas width="0" height="0" id="celebrate-canvas"></canvas>
+<header id="main-header">
+    <ul id="main-toolbar" class="toolbar">
+        <li id="new-game-button" title="New game">
+            <svg class="icon" id="plus-icon"><title>New game</title>
+                <use xlink:href="sprites.svg#fa-plus"/></svg>
+            <span class="label">New</span>
+        </li>
+        <li id="reload-button" class="disabled" title="Regen">
+            <svg class="icon" id="reload-icon"><title>Regen</title>
+                <use xlink:href="sprites.svg#fa-sync"/></svg>
+            <span class="label">Regen</span>
+        </li>
+        <li id="undo-button" class="disabled" title="Undo">
+            <svg class="icon" id="undo-icon"><title>Undo</title>
+                <use xlink:href="sprites.svg#fa-undo"/></svg>
+            <span class="label">Undo</span>
+        </li>
+        <li id="redo-button" class="disabled" title="Redo">
+            <svg class="icon" id="redo-icon" transform="scale(-1,1)"><title>Redo</title>
+                <use xlink:href="sprites.svg#fa-undo"/></svg>
+            <span class="label">Redo</span>
+        </li>
+        <li id="zoom-button" title="Zoom">
+            <svg class="icon" id="zoom-icon"><title>Zoom</title>
+                <use xlink:href="sprites.svg#fa-search-pm"/></svg>
+            <span class="label">Zoom</span>
+        </li>
+        <li id="share-button" title="Share URL">
+            <svg class="icon" id="share-icon"><title>Share URL</title>
+                <use xlink:href="sprites.svg#fa-share-alt"/></svg>
+            <span class="label">Share</span>
+        </li>
+        <li id="save-game-button" title="Save game">
+            <svg class="icon" id="save-icon"><title>Save game</title>
+                <use xlink:href="sprites.svg#fa-save"/></svg>
+            <span class="label">Save</span>
+        </li>
+        <li id="unpack-button" title="Put back">
+            <svg class="icon" id="unpack-icon"><title>Put back</title>
+                <use xlink:href="sprites.svg#fa-broom"/></svg>
+            <span class="label">Unpack</span>
+        <li id="solutions-button" title="View solution" style="display: none;">
+            <svg class="icon" id="solutions-icon"><title>View solution</title>
+                <use xlink:href="sprites.svg#fa-eye"/></svg>
+            <span class="label">Solution</span>
+        </li>
+        <li id="auto-pack-button" title="Run algorithms">
+            <svg class="icon" id="play-icon"><title>Run algorithms</title>
+                <use xlink:href="sprites.svg#fa-play"/></svg>
+            <span class="label">Algo</span>
+        </li>
+        <li id="export-button" title="Export as figure">
+            <svg class="icon" id="export-img-icon"><title>Export as figure</title>
+                <use xlink:href="sprites.svg#fa-file-image"/></svg>
+            <span class="label">Figure</span>
+        </li>
+        <li id="edit-button" title="Creator mode" style="display: none;">
+            <svg class="icon" id="edit-icon"><title>Creator mode</title>
+                <use xlink:href="sprites.svg#fa-edit"/></svg>
+            <span class="label">Edit</span>
+        </li>
+        <li id="dark-mode-button">
+            <svg class="icon light-only" id="moon-icon"><title>Switch to dark mode</title>
+                <use xlink:href="sprites.svg#fa-moon"/></svg>
+            <span class="label light-only">Dark</span>
+            <svg class="icon dark-only" id="sun-icon"><title>Switch to light mode</title>
+                <use xlink:href="sprites.svg#fa-sun"/></svg>
+            <span class="label dark-only">Light</span>
+        </li>
+        <li id="about-button" title="About">
+            <svg class="icon" id="about-icon"><title>About</title>
+                <use xlink:href="sprites.svg#fa-question"/></svg>
+            <span class="label">About</span>
+        </li>
+    </ul>
+    <ul id="zoom-toolbar" class="toolbar disabled">
+        <li id="zoom-in-button" title="Zoom in">
+            <svg class="icon" id="zoom-in-icon"><title>Zoom in</title>
+                <use xlink:href="sprites.svg#fa-search-plus"/></svg>
+        </li>
+        <li id="zoom-out-button" title="Zoom out">
+            <svg class="icon" id="zoom-out-icon"><title>Zoom out</title>
+                <use xlink:href="sprites.svg#fa-search-minus"/></svg>
+        </li>
+        <li id="zoom-fit-button" title="Fit">
+            <svg class="icon" id="zoom-fit-icon"><title>Fit</title>
+                <use xlink:href="sprites.svg#fa-arrows-alt"/></svg>
+        </li>
+        <li id="zoom-x-button" title="Fit horizontally">
+            <svg class="icon" id="zoom-x-icon"><title>Fit horizontally</title>
+                <use xlink:href="sprites.svg#fa-arrows-alt-h"/></svg>
+        </li>
+        <li id="zoom-y-button" title="Fit vertically">
+            <svg class="icon" id="zoom-y-icon"><title>Fit vertically</title>
+                <use xlink:href="sprites.svg#fa-arrows-alt-v"/></svg>
+        </li>
+    </ul>
+    <form id="edit-form" class="menu disabled">
+        <header>
+            <div class="heading">Creator mode</div>
+            <div class="close-btn"></div>
+        </header>
+        <div class="options menu-body">
+            <p>Item click mode:</p>
+            <div class="input-pair">
+                <input type="radio" id="edit-radio-item-drag" name="edit-item" value="drag" checked/>
+                <label for="edit-radio-item-drag">drag</label>
+            </div>
+            <div class="input-pair">
+                <input type="radio" id="edit-radio-item-delete" name="edit-item" value="delete" />
+                <label for="edit-radio-item-delete">delete</label>
+            </div>
+            <div class="input-pair">
+                <input type="radio" id="edit-radio-item-null" name="edit-item" value="" />
+                <label for="edit-radio-item-null">null</label>
+            </div>
+            <p>Bin click mode:</p>
+            <div class="input-pair">
+                <input type="radio" id="edit-radio-bin-null" name="edit-bin" value="" checked/>
+                <label for="edit-radio-bin-null">null</label>
+            </div>
+            <div class="input-pair">
+                <input type="radio" id="edit-radio-bin-create" name="edit-bin" value="create" />
+                <label for="edit-radio-bin-create">create</label>
+            </div>
+        </div>
+    </form>
+    <ul id="msg-list"></ul>
+</header>
+<main id="arena" class="item-touch">
+    <div id="hover-rect"></div>
+    <div id="inventory"></div>
+    <div id="arena-separator"></div>
+    <div id="packing-area"></div>
+</main>
+<noscript>
+<p class="large">Please
+<a href="https://www.enable-javascript.com">enable JavaScript</a>
+to run this game.</p>
+<p>See <a href="https://github.com/sharmaeklavya2/packing-game">
+https://github.com/sharmaeklavya2/packing-game</a> for source code
+and documentation.</p>
+</noscript>
+<div class="gas"></div>
+<footer id="footer">
+    <div class="bar disabled" id="item-info-bar"></div>
+    <div class="bar" id="stats-bar"></div>
+</footer>
+<section id="invisible-section">
+    <input type="file" id="level-loader" accept=".json,application/json" style="display:none" />
+    <a id="downloader" rel="nofollow"></a>
+</section>
+<section id="modal-group">
+    <div class="gas"></div>
+    <div id="ng-menu" class="menu disabled">
+        <header>
+            <div class="heading">Load a new game</div>
+            <div class="close-btn"></div>
+        </header>
+        <ul id="ng-list" class="menu-body">
+            <li id="ng-hc">Select level</li>
+            <li id="ng-gen">Generate level randomly</li>
+            <li id="ng-upload">Upload a file</li>
+            <li id="ng-json">Enter raw JSON</li>
+        </ul>
+    </div>
+    <div id="ng-hc-menu" class="menu disabled">
+        <header>
+            <div class="back-btn"></div>
+            <div class="heading">Select existing level</div>
+            <div class="close-btn"></div>
+        </header>
+        <ul id="ng-hc-list" class="menu-body">
+            <li data-name="1">Level 1</li>
+            <li data-name="2">Level 2</li>
+            <li data-name="3">Level 3</li>
+            <li data-name="4">Level 4</li>
+        </ul>
+    </div>
+    <div id="ng-gen-menu" class="menu disabled">
+        <header>
+            <div class="back-btn"></div>
+            <div class="heading">Choose random generator</div>
+            <div class="close-btn"></div>
+        </header>
+        <ul id="ng-gen-list" class="menu-body"></ul>
+    </div>
+    <div id="ng-json-menu" class="menu disabled">
+        <header>
+            <div class="back-btn"></div>
+            <div class="heading">Enter raw JSON</div>
+            <div class="close-btn"></div>
+        </header>
+        <textarea id="ng-json-input" name="ng-json" rows="8" cols="80"
+            autocapitalize="none" autocomplete="off" spellcheck="false"></textarea>
+        <button id="ng-json-submit" type="submit">Submit</button>
+    </div>
+    <div id="solutions-menu" class="menu disabled">
+        <header>
+            <div class="heading">View solutions</div>
+            <div class="close-btn"></div>
+        </header>
+        <ul id="solutions-list" class="menu-body"></ul>
+    </div>
+    <div id="auto-pack-menu" class="menu disabled">
+        <header>
+            <div class="heading">Run algorithms</div>
+            <div class="close-btn"></div>
+        </header>
+        <ul id="auto-pack-list" class="menu-body"></ul>
+    </div>
+    <div id="export-menu" class="menu disabled">
+        <header>
+            <div class="heading">Export as figure</div>
+            <div class="close-btn"></div>
+        </header>
+        <ul id="export-list" class="menu-body">
+            <li id="export-li-svg">SVG</li>
+            <li id="export-li-tikz">TikZ (bins only)</li>
+            <li id="export-li-pdf">Print (bins only)</li>
+        </ul>
+    </div>
+    <div id="about-menu" class="menu disabled">
+        <header>
+            <div class="heading">About this game</div>
+            <div class="close-btn"></div>
+        </header>
+        <div class="menu-body">
+            <p>
+This is a 2D geometric bin-packing game. You have to pack all items
+from the left side into the minimum number of bins on the right side.
+            </p>
+            <p>
+See <a href="https://github.com/sharmaeklavya2/packing-game">
+https://github.com/sharmaeklavya2/packing-game</a> for source code
+and documentation.
+            </p>
+        </div>
+    </div>
+    <div id="modal-overlay" class="overlay"></div>
+    <div class="gas"></div>
+</section>
+</body>
+</html>

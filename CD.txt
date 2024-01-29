@@ -1,0 +1,6 @@
+cd "C:\Users\Ozudo001\OneDrive - Universiteit Utrecht\Desktop\pack2"
+
+
+python -m http.server 8084
+
+http://localhost:8084
